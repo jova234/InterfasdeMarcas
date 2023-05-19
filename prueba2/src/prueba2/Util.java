@@ -8,6 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class Util {
+    
+    
      public static String convertirFecha(Date fecha) {
         String formato = "";
         try {

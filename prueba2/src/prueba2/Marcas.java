@@ -4,11 +4,12 @@
  */
 package prueba2;
 
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -152,21 +153,31 @@ public class Marcas {
 
         Conexion conexion = Conexion.getInstance();
         Connection micoConnection = conexion.getConexion();
-        String sql = "INSERT INTO `marcas` (`NOMBREMARCA`, `DESCRIPCION`, `ELIMINADO`, 'ICONO', 'USUARIO_ALTA' ,`MOV_FECHA_ALTA`, `MOV_HORA_ALTA`) "
+        String sql = "INSERT INTO `marcas` (`NOMBREMARCA`, `DESCRIPCION`, `ELIMINADO`, `ICONO`, `USUARIO_ALTA`, `MOV_FECHA_ALTA`, `MOV_HORA_ALTA`) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        String icono = paraIcono.getText();
+        if (icono.isEmpty()) {
+            icono = null; // O puedes asignar un valor predeterminado en lugar de null
+        }
+        setIcono(icono);
+
         try {
+            Date fechaActual = new Date();
+
             PreparedStatement cs = micoConnection.prepareStatement(sql);
             cs.setString(1, getNombreMarca());
             cs.setString(2, getDescripcion());
-            cs.setString(3, getEliminado());
+            cs.setString(3, "true");
             cs.setString(4, getIcono());
-            cs.setInt(5, getUsuarioAlta());
-            cs.setString(6, paraFecha.getText());
-            cs.setString(7, paraHora.getText());
+            cs.setString(5, paraUsuarioAlta.getText());
+            cs.setString(6, Util.convertirFecha(fechaActual));
+            cs.setString(7, Util.convertirHora(fechaActual));
             cs.executeUpdate();
-            JOptionPane.showMessageDialog(null, "Se inserto correctamente el registro");
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "No se inserto el registro corrctamente: " + e.toString());
+            JOptionPane.showMessageDialog(null, "Se insertó correctamente el registro");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "No se insertó el registro correctamente: " + e.toString());
         }
     }
 
@@ -185,15 +196,19 @@ public class Marcas {
         modelo.addColumn("DESCRIPCION");
         modelo.addColumn("ELIMINADO");
         modelo.addColumn("ICONO");
+        modelo.addColumn("IMAGEN");
         modelo.addColumn("USUARIO_ALTA");
         modelo.addColumn("MOV_FECHA_ALTA");
         modelo.addColumn("MOV_HORA_ALTA");
+        modelo.addColumn("USUARIO_MODIFICA");
+        modelo.addColumn("MOV_FECHA_MODIFICA");
+        modelo.addColumn("MOV_HORA_MODIFICA");
 
         paraTablaTotal.setModel(modelo);
 
-        sql = "SELECT * FROM marcas;";
+        sql = "SELECT * FROM marcas where ELIMINADO='true'";
 
-        String[] dato = new String[8];
+        String[] dato = new String[12];
         Statement st;
         try {
             st = conexion.getConexion().createStatement();
@@ -208,8 +223,16 @@ public class Marcas {
                 dato[5] = rs.getString(6);
                 dato[6] = rs.getString(7);
                 dato[7] = rs.getString(8);
+                dato[8] = rs.getString(9);
+                dato[9] = rs.getString(10);
+                dato[10] = rs.getString(11);
+                dato[11] = rs.getString(12);
 
                 modelo.addRow(dato);
+
+                if (paraTablaTotal != null) {
+                    paraTablaTotal.getTableHeader().setReorderingAllowed(false);
+                }
             }
             paraTablaTotal.setModel(modelo);
         } catch (Exception e) {
@@ -217,23 +240,110 @@ public class Marcas {
         }
     }
 
-    public void SeleccionarMarca(JTable paraTablaTotal, JTextField paraIDMARCA, JTextField paraNombre, JTextField paraDescripcion, JTextField paraEliminado, JTextField paraIcono, JTextField paraUsuarioAlta, JTextField paraFecha, JTextField paraHora) {
+    public void SeleccionarMarca(JTable paraTablaTotal, JTextField paraIDMARCA, JTextField paraNombre, JTextField paraDescripcion, JTextField paraEliminado, JTextField paraIcono, JTextField paraUsuarioAlta, JTextField paraFecha, JTextField paraHora, JTextField paraUsuarioMod, JTextField paraFechaMod, JTextField paraHoraMod) {
         try {
+
             int fila = paraTablaTotal.getSelectedRow();
 
             if (fila >= 0) {
+                paraIDMARCA.setText(paraTablaTotal.getValueAt(fila, 0).toString());
                 paraNombre.setText(paraTablaTotal.getValueAt(fila, 1).toString());
                 paraDescripcion.setText(paraTablaTotal.getValueAt(fila, 2).toString());
                 paraEliminado.setText(paraTablaTotal.getValueAt(fila, 3).toString());
-                paraIcono.setText(paraTablaTotal.getValueAt(fila, 4).toString());
-                paraUsuarioAlta.setText(paraTablaTotal.getValueAt(fila, 5).toString());
-                paraFecha.setText(paraTablaTotal.getValueAt(fila, 6).toString());
-                paraHora.setText(paraTablaTotal.getValueAt(fila, 7).toString());
+
+                paraIcono.setText("");
+                if (paraTablaTotal.getValueAt(fila, 4) != null && paraTablaTotal.getValueAt(fila, 4).toString() != null && !paraTablaTotal.getValueAt(fila, 4).toString().isEmpty()) {
+                    paraIcono.setText(paraTablaTotal.getValueAt(fila, 4).toString());
+                }
+
+                paraUsuarioAlta.setText("");
+                if (paraTablaTotal.getValueAt(fila, 6) != null && paraTablaTotal.getValueAt(fila, 6).toString() != null && !paraTablaTotal.getValueAt(fila, 6).toString().isEmpty()) {
+                    paraUsuarioAlta.setText(paraTablaTotal.getValueAt(fila, 6).toString());
+                }
+
+                paraFecha.setText("");
+                if (paraTablaTotal.getValueAt(fila, 7) != null && paraTablaTotal.getValueAt(fila, 7).toString() != null && !paraTablaTotal.getValueAt(fila, 7).toString().isEmpty()) {
+                    paraFecha.setText(paraTablaTotal.getValueAt(fila, 7).toString());
+                }
+
+                paraHora.setText("");
+                if (paraTablaTotal.getValueAt(fila, 8) != null && paraTablaTotal.getValueAt(fila, 8).toString() != null && !paraTablaTotal.getValueAt(fila, 8).toString().isEmpty()) {
+                    paraHora.setText(paraTablaTotal.getValueAt(fila, 8).toString());
+                }
+
+                paraUsuarioMod.setText("");
+                if (paraTablaTotal.getValueAt(fila, 9) != null && paraTablaTotal.getValueAt(fila, 9).toString() != null && paraTablaTotal.getValueAt(fila, 9).toString().isEmpty()) {
+                    paraUsuarioMod.setText(paraTablaTotal.getValueAt(fila, 9).toString());
+                }
+                paraFechaMod.setText("");
+                if (paraTablaTotal.getValueAt(fila, 10) != null && paraTablaTotal.getValueAt(fila, 10).toString() != null && !paraTablaTotal.getValueAt(fila, 10).toString().isEmpty()) {
+                    paraFechaMod.setText(paraTablaTotal.getValueAt(fila, 10).toString());
+                }
+                paraHoraMod.setText("");
+                if (paraTablaTotal.getValueAt(fila, 11) != null && paraTablaTotal.getValueAt(fila, 11).toString() != null && !paraTablaTotal.getValueAt(fila, 11).toString().isEmpty()) {
+                    paraHoraMod.setText(paraTablaTotal.getValueAt(fila, 11).toString());
+                }
+
             } else {
                 JOptionPane.showMessageDialog(null, "Fila no selecionada");
             }
         } catch (Exception e) {
+            e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error de seleccion: " + e.toString());
+        }
+    }
+
+    public void Modificar(JTextField paraIDMarca, JTextField paraNombre, JTextField paraDescripcion, JTextField paraEliminado, JTextField paraIcono, JTextField paraUsuarioAlta, JTextField paramovFechaAlta, JTextField paramovHoraAlta, JTextField paraUsarioMod, JTextField paraFechaMod, JTextField paraHoraMod) {
+        try {
+            int idMarca = 0;
+            if (!paraIDMarca.getText().isEmpty()) {
+                idMarca = Integer.parseInt(paraIDMarca.getText());
+            }
+
+            String nombreMarca = paraNombre.getText();
+            String descripcion = paraDescripcion.getText();
+            String eliminado = paraEliminado.getText();
+            String icono = paraIcono.getText();
+            String fecha = paramovFechaAlta.getText();
+            String hora = paramovHoraAlta.getText();
+            String fechaMod = paraFechaMod.getText();
+            String horaMod = paraHoraMod.getText();
+
+            int usuarioAlta = usuarioModifica;
+            if (!paraUsuarioAlta.getText().isEmpty()) {
+                usuarioAlta = Integer.parseInt(paraUsuarioAlta.getText());
+            }
+
+            int usuarioMod = usuarioAlta;
+            if (!paraUsarioMod.getText().isEmpty()) {
+                usuarioMod = Integer.parseInt(paraUsarioMod.getText());
+            }
+
+            Conexion conexion = Conexion.getInstance();
+            Connection micoConnection = conexion.getConexion();
+
+            String consulta = "UPDATE marcas SET NOMBREMARCA=?, DESCRIPCION=?, ELIMINADO=?, ICONO=?,  USUARIO_MODIFICA=?, MOV_FECHA_MODIFICA=?, MOV_HORA_MODIFICA=? WHERE IDMARCA=?";
+
+            try {
+                Date fechaActual = new Date();
+
+                PreparedStatement cs = micoConnection.prepareStatement(consulta);
+                cs.setString(1, nombreMarca);
+                cs.setString(2, descripcion);
+                cs.setString(3, eliminado);
+                cs.setString(4, icono);
+                cs.setInt(5, usuarioMod);
+                cs.setString(6, Util.convertirFecha(fechaActual));
+                cs.setString(7, Util.convertirHora(fechaActual));
+                cs.setInt(8, idMarca);
+                cs.executeUpdate();
+                JOptionPane.showMessageDialog(null, "Modificación exitosa");
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "No se hizo la modificación correctamente: " + e.toString());
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "Los campos de ID de Marca y Usuario Alta deben ser números enteros.");
         }
     }
 
@@ -244,11 +354,15 @@ public class Marcas {
                 Conexion conexion = Conexion.getInstance();
                 Connection micoConnection = conexion.getConexion();
 
-                String consulta = "DELETE FROM marcas WHERE marcas.IDMARCA=?;";
+                //String consulta = "DELETE FROM marcas WHERE IDMARCA=? ";
+                String consulta = "UPDATE marcas SET ELIMINADO='false', MOV_FECHA_MODIFICA=?, MOV_HORA_MODIFICA=? WHERE IDMARCA=?";
 
                 try {
+                    Date fechaActual = new Date();
                     PreparedStatement cs = micoConnection.prepareStatement(consulta);
-                    cs.setInt(1, getIdMarca());
+                    cs.setString(1, Util.convertirFecha(fechaActual));
+                    cs.setString(2, Util.convertirHora(fechaActual));
+                    cs.setInt(3, getIdMarca());
                     cs.execute();
                     JOptionPane.showMessageDialog(null, "Se eliminó correctamente el registro");
                 } catch (Exception e) {
